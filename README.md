@@ -16,7 +16,7 @@ This section includes a set of procedures to set up the External Secrets Operato
 
 ### AWS Secret
 
-It is required to create a secret in AWS in order to store the private information that had to be used in Openshift. For this reason, it is necessary to execute the following command:
+It is required to create a secret in AWS in order to store the private information that has to be used in Openshift. For this reason, it is necessary to execute the following command:
 
 ```$bash
 aws secretsmanager create-secret \
@@ -194,6 +194,44 @@ Events:
 oc extract secret/aws-openshift-mysecret01 --to=-
 # privatedata
 securedinformationrotated
+```
+
+## Argo CD
+
+As mentioned in the previous procedure, It is required to create a secret in AWS in order to store the private information that has to be used in Openshift.
+
+```$bash
+aws secretsmanager create-secret \
+     --name openshift-mysecret02 \
+     --secret-string securedinformations-secret02 \
+     --region us-east-2
+```
+
+Regarding the steps to create the respective Argo CD application that handles the creation of the secret, once the Red Hat GitOps is installed, are included in the following procedure:
+
+```$bash
+oc label namespace app argocd.argoproj.io/managed-by=openshift-gitops
+
+oc apply -f argocd/application.yaml -n openshift-gitops
+```
+
+- Check the *External Secret*
+
+```$bash
+oc describe ExternalSecret aws-openshift-mysecret02
+...
+Events:
+  Type    Reason   Age                   From              Message
+  ----    ------   ----                  ----              -------
+  Normal  Updated  32s (x10 over 2m11s)  external-secrets  Updated Secret
+```
+
+- Check the final secret in Openshift
+
+```$bash
+oc extract secret/aws-openshift-mysecret02 --to=-
+# privatedata
+securedinformations-secret02
 ```
 
 ## Author
