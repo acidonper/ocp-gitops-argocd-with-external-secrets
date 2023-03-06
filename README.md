@@ -34,8 +34,8 @@ First of all, it is required to install the External Secrets Operator following 
 - Install the operator and its configuration
   
 ```$bash
-oc apply -f openshift/00-externalsecretsoperator-subs.yaml
-oc apply -f openshift/00-externalsecretsoperator-conf.yaml
+oc apply -f openshift/00-externalsecretsoperator-subs.yaml -n openshift-operators
+oc apply -f openshift/00-externalsecretsoperator-conf.yaml -n openshift-operators
 ```
 
 - Check the respective pods
@@ -55,10 +55,9 @@ Once the Operator is installed, it is time to create the respective resources in
 - Create a specific secret with the AWS Secrets Manager Credentials
 
 ```$bash
-oc new-project external-secrets
 echo -n 'KEYID' > ./access-key
 echo -n 'SECRETKEY' > ./secret-access-key
-oc create secret generic awssm-secret --from-file=./access-key --from-file=./secret-access-key -n external-secrets
+oc create secret generic awssm-secret --from-file=./access-key --from-file=./secret-access-key -n openshift-operators
 ```
 
 ### External Secrets Objects
@@ -70,7 +69,7 @@ First of all, it is required to create a *Secret Storage*. The idea behind the S
 - Create a *Secret Storage* (*edit region if it is required*)
 
 ```$bash
-oc apply -f openshift/01-secretstorage.yaml -n external-secrets
+oc apply -f openshift/01-secretstorage.yaml -n openshift-operators
 ```
 
 Once the *Secret Storage* is created, it is required to create the respective *External Secret* object that declares what data to fetch. It has a reference to a SecretStore which knows how to access that data. The controller uses that ExternalSecret as a blueprint to create secrets.
@@ -80,7 +79,7 @@ With this in mind, it is required to create an *External Secret* per AWS secret 
 - Create the respective *External Secret* in order to get the secret from AWS (*Edit any information required*)
 
 ```$bash
-oc apply -f openshift/02-externalsecret.yaml -n external-secrets
+oc apply -f openshift/02-externalsecret.yaml -n openshift-operators
 ```
 
 At this moment, it is possible to access the respective information in Openshift. The following procedure includes a set of steps to ensure everything is working properly:
@@ -88,8 +87,8 @@ At this moment, it is possible to access the respective information in Openshift
 - Check the *Secret Storage*
 
 ```$bash
-oc describe SecretStore secretstore-aws 
-...
+oc describe SecretStore secretstore-aws -n openshift-operators
+...  
 Events:
   Type    Reason  Age                From          Message
   ----    ------  ----               ----          -------
@@ -99,7 +98,7 @@ Events:
 - Check the *External Secret*
 
 ```$bash
-oc describe ExternalSecret aws-openshift-mysecret01
+oc describe ExternalSecret aws-openshift-mysecret01 -n openshift-operators
 ...
 Events:
   Type    Reason   Age                   From              Message
@@ -110,12 +109,12 @@ Events:
 - Check the final secret in Openshift
 
 ```$bash
-oc get secret aws-openshift-mysecret01 -o yaml
+oc get secret aws-openshift-mysecret01 -o yaml -n openshift-operators
 ...
 data:
   privatedata: c2VjdXJlZGluZm9ybWF0aW9u
 
-oc extract secret/aws-openshift-mysecret01 --to=-
+oc extract secret/aws-openshift-mysecret01 --to=- -n openshift-operators
 # privatedata
 securedinformation
 ```
@@ -131,13 +130,13 @@ After rotate certificates, it is possible to find errors if the *SealedSecret* o
 - Create an *External Secret* with errors, for example referencing a secret that does not exist
 
 ```$bash
-oc apply -f examples/externalsecret-error.yaml
+oc apply -f examples/externalsecret-error.yaml -n openshift-operators
 ```
 
 - Review the *External Secret* object
 
 ```$bash
-oc get ExternalSecret aws-openshift-error
+oc get ExternalSecret aws-openshift-error -n openshift-operators
 NAME                  STORE             REFRESH INTERVAL   STATUS              READY
 aws-openshift-error   secretstore-aws   1m                 SecretSyncedError   False
 ```
@@ -171,7 +170,7 @@ aws secretsmanager update-secret \
 - Check the *External Secret*
 
 ```$bash
-oc describe ExternalSecret aws-openshift-mysecret01
+oc describe ExternalSecret aws-openshift-mysecret01 -n openshift-operators
 ...
 Status:
   Conditions:
@@ -191,7 +190,7 @@ Events:
 - Check the final secret in Openshift
 
 ```$bash
-oc extract secret/aws-openshift-mysecret01 --to=-
+oc extract secret/aws-openshift-mysecret01 --to=- -n openshift-operators
 # privatedata
 securedinformationrotated
 ```
@@ -209,27 +208,37 @@ aws secretsmanager create-secret \
 
 Regarding the steps to create the respective Argo CD application that handles the creation of the secret, once the Red Hat GitOps is installed, are included in the following procedure:
 
+- Create the Argo CD Application
+
 ```$bash
+oc new-project app 
+
 oc label namespace app argocd.argoproj.io/managed-by=openshift-gitops
 
 oc apply -f argocd/application.yaml -n openshift-gitops
 ```
 
+- Create the respective secret to access AWS Secrets Manager information
+
+```$bash
+oc create secret generic awssm-secret --from-file=./access-key --from-file=./secret-access-key -n app
+```
+
 - Check the *External Secret*
 
 ```$bash
-oc describe ExternalSecret aws-openshift-mysecret02
+oc describe ExternalSecret aws-openshift-mysecret02 -n app
 ...
 Events:
   Type    Reason   Age                   From              Message
   ----    ------   ----                  ----              -------
-  Normal  Updated  32s (x10 over 2m11s)  external-secrets  Updated Secret
+  Normal  Updated  32s (x2 over 72s)  external-secrets  Updated Secret
 ```
 
 - Check the final secret in Openshift
 
 ```$bash
-oc extract secret/aws-openshift-mysecret02 --to=-
+oc extract secret/aws-openshift-mysecret02 --to=- -n app
 # privatedata
 securedinformations-secret02
 ```
