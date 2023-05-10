@@ -1,6 +1,6 @@
 # ocp-gitops-argocd-with-external-secrets-operator
 
-This repository collects information about implementing a secret management strategy based on GitOps and the  .
+This repository collects information about implementing a secret management strategy based on GitOps and External Secret Operator.
 
 External Secrets Operator is a Kubernetes operator that integrates external secret management systems like AWS Secrets Manager, HashiCorp Vault, Google Secrets Manager, Azure Key Vault, IBM Cloud Secrets Manager, and many more. The operator reads information from external APIs and automatically injects the values into a Kubernetes Secret.
 
@@ -17,6 +17,10 @@ This section includes a set of procedures to set up the External Secrets Operato
 ### AWS Secret
 
 It is required to create a secret in AWS in order to store the private information that has to be used in Openshift. For this reason, it is necessary to execute the following command:
+
+> **NOTE**
+> 
+> First check your AWS account credencials in ~/.aws/credentials in order to be able to run the next command.
 
 ```$bash
 aws secretsmanager create-secret \
@@ -109,10 +113,11 @@ Events:
 - Check the final secret in Openshift
 
 ```$bash
-oc get secret aws-openshift-mysecret01 -o yaml -n openshift-operators
+oc get ExternalSecret aws-openshift-mysecret01 -o yaml -n openshift-operators
 ...
 data:
   privatedata: c2VjdXJlZGluZm9ybWF0aW9u
+...
 
 oc extract secret/aws-openshift-mysecret01 --to=- -n openshift-operators
 # privatedata
@@ -137,6 +142,7 @@ oc apply -f examples/externalsecret-error.yaml -n openshift-operators
 
 ```$bash
 oc get ExternalSecret aws-openshift-error -n openshift-operators
+
 NAME                  STORE             REFRESH INTERVAL   STATUS              READY
 aws-openshift-error   secretstore-aws   1m                 SecretSyncedError   False
 ```
@@ -156,7 +162,7 @@ oc logs $POD -n openshift-operators
 
 Secrets lifecycle does not only include creation and deletion, modification operations should be performed from time to time in order to rotate or change values. External Secrets and the *refreshInterval* parameter included in the *External Secret* object allow user to not be concerned about changes in Openshift when the source of trust change. External Secrets manager identifies the changes and synchronizes the data automatically.
 
-In order to test this functionality, it is possible execute to execute the following procedure:
+In order to test this functionality, it is possible to execute the following procedure:
 
 - Modify the secret in AWS
 
@@ -206,7 +212,7 @@ aws secretsmanager create-secret \
      --region us-east-2
 ```
 
-Regarding the steps to create the respective Argo CD application that handles the creation of the secret, once the Red Hat GitOps is installed, are included in the following procedure:
+Regarding the steps to create the respective Argo CD application that handles the creation of the secret, once the Red Hat Openshift GitOps operator is installed, are included in the following procedure:
 
 - Create the Argo CD Application
 
