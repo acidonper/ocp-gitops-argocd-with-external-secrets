@@ -56,11 +56,18 @@ external-secrets-operator-controller-manager-85945bfc57-7xg22   1/1     Running 
 
 Once the Operator is installed, it is time to create the respective resources in order to be able to synchronize secrets from an external provider. Please follow the next steps to configure the AWS Secrets Manager:
 
-- Create a specific secret with the AWS Secrets Manager Credentials
+> **NOTE**
+> 
+> Replace *'KEYID'* with your AWS_ACCESS_KEY_ID and *'SECRETKEY'* with your AWS_SECRET_ACCESS_KEY.
 
 ```$bash
 echo -n 'KEYID' > ./access-key
 echo -n 'SECRETKEY' > ./secret-access-key
+```
+
+- Create a specific secret with the AWS Secrets Manager Credentials
+
+```$bash
 oc create secret generic awssm-secret --from-file=./access-key --from-file=./secret-access-key -n openshift-operators
 ```
 
@@ -113,7 +120,7 @@ Events:
 - Check the final secret in Openshift
 
 ```$bash
-oc get ExternalSecret aws-openshift-mysecret01 -o yaml -n openshift-operators
+oc get secret aws-openshift-mysecret01 -o yaml -n openshift-operators
 ...
 data:
   privatedata: c2VjdXJlZGluZm9ybWF0aW9u
