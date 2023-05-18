@@ -9,6 +9,7 @@ External Secrets Operator is a Kubernetes operator that integrates external secr
 - Openshift +4.12
 - Oc CLI +4.12 - [Official Doc](https://docs.openshift.com/container-platform/4.12/cli_reference/openshift_cli/getting-started-cli.html)
 - AWS Secrets Manager Account
+- AWS CLI - [Official Doc](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 
 ## Setting Up
 
@@ -125,6 +126,9 @@ oc get secret aws-openshift-mysecret01 -o yaml -n openshift-operators
 data:
   privatedata: c2VjdXJlZGluZm9ybWF0aW9u
 ...
+
+echo "c2VjdXJlZGluZm9ybWF0aW9u" | base64 -d
+securedinformation
 
 oc extract secret/aws-openshift-mysecret01 --to=- -n openshift-operators
 # privatedata
